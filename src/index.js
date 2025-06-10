@@ -1,6 +1,7 @@
 import express from 'express';
 import { ScanCommand } from '@aws-sdk/client-dynamodb';
 import { unmarshall } from '@aws-sdk/util-dynamodb';
+import serverlessExpress from '@vendia/serverless-express';
 
 const tickers = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA'];
 
