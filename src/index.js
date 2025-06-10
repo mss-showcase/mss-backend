@@ -1,0 +1,56 @@
+import express from 'express';
+import { ScanCommand } from '@aws-sdk/client-dynamodb';
+import { unmarshall } from '@aws-sdk/util-dynamodb';
+
+const tickers = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA'];
+
+const app = express();
+
+// GET /stocks - return static list
+app.get('/stocks', (req, res) => {
+  res.json({ stocks: tickers });
+});
+
+// GET /ticks/:symbol?window=day|week|month
+app.get('/ticks/:symbol', async (req, res) => {
+  const { symbol } = req.params;
+  const window = req.query.window || 'day';
+  if (!tickers.includes(symbol)) {
+    return res.status(404).json({ error: 'Unknown symbol' });
+  }
+
+  // Calculate time window
+  const now = new Date();
+  let fromDate = new Date(now);
+  if (window === 'week') fromDate.setDate(now.getDate() - 7);
+  else if (window === 'month') fromDate.setDate(now.getDate() - 30);
+  else fromDate.setHours(0, 0, 0, 0); // today
+
+  const fromTimestamp = fromDate.toISOString();
+
+  try {
+    let ticks = [];
+    let ExclusiveStartKey;
+    do {
+      const result = await dynamodb.send(new ScanCommand({
+        TableName: TICKS_TABLE,
+        FilterExpression: '#symbol = :symbol AND #timestamp >= :from',
+        ExpressionAttributeNames: {
+          '#symbol': 'symbol',
+          '#timestamp': 'timestamp',
+        },
+        ExpressionAttributeValues: {
+          ':symbol': { S: symbol },
+          ':from': { S: fromTimestamp },
+        },
+        ExclusiveStartKey,
+      }));
+      ticks.push(...result.Items.map(unmarshall));
+      ExclusiveStartKey = result.LastEvaluatedKey;
+    } while (ExclusiveStartKey);
+
+    res.json({ symbol, ticks });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
