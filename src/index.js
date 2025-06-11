@@ -9,6 +9,8 @@ const tickers = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA'];
 const app = express();
 const dynamodb = new DynamoDBClient();
 
+const TICKS_TABLE = process.env.TICKS_TABLE;
+
 // GET /stocks - return static list
 app.get('/stocks', (req, res) => {
   res.json({ stocks: tickers });
