@@ -2,10 +2,12 @@ import express from 'express';
 import { ScanCommand } from '@aws-sdk/client-dynamodb';
 import { unmarshall } from '@aws-sdk/util-dynamodb';
 import serverlessExpress from '@vendia/serverless-express';
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 
 const tickers = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA'];
 
 const app = express();
+const dynamodb = new DynamoDBClient();
 
 // GET /stocks - return static list
 app.get('/stocks', (req, res) => {
