@@ -26,25 +26,42 @@ app.get('/ticks/:symbol', async (req, res) => {
     return res.status(404).json({ error: 'Unknown symbol' });
   }
 
-  // Use provided date or now
-  let now;
+  let fromDate, toDate;
+
   if (dateParam) {
     // Parse dateParam as UTC midnight
     const parsed = new Date(dateParam + 'T00:00:00Z');
     if (isNaN(parsed.getTime())) {
       return res.status(400).json({ error: 'Invalid date format. Use YYYY-MM-DD.' });
     }
-    now = parsed;
+    fromDate = new Date(parsed);
+    if (window === 'week') {
+      toDate = new Date(parsed);
+      toDate.setDate(toDate.getDate() + 6); // 7 days total: date + 6
+    } else if (window === 'month') {
+      toDate = new Date(parsed);
+      toDate.setDate(toDate.getDate() + 29); // 30 days total: date + 29
+    } else {
+      // day
+      toDate = new Date(parsed);
+      toDate.setHours(23, 59, 59, 999);
+    }
   } else {
-    now = new Date();
+    // No date param: use now as end, subtract window for start
+    toDate = new Date();
+    fromDate = new Date(toDate);
+    if (window === 'week') {
+      fromDate.setDate(toDate.getDate() - 6); // last 7 days including today
+    } else if (window === 'month') {
+      fromDate.setDate(toDate.getDate() - 29); // last 30 days including today
+    } else {
+      // day
+      fromDate.setHours(0, 0, 0, 0);
+    }
   }
 
-  let fromDate = new Date(now);
-  if (window === 'week') fromDate.setDate(now.getDate() - 7);
-  else if (window === 'month') fromDate.setDate(now.getDate() - 30);
-  else fromDate.setHours(0, 0, 0, 0); // today
-
   const fromTimestamp = fromDate.toISOString();
+  const toTimestamp = toDate.toISOString();
 
   try {
     let ticks = [];
@@ -52,7 +69,7 @@ app.get('/ticks/:symbol', async (req, res) => {
     do {
       const result = await dynamodb.send(new ScanCommand({
         TableName: TICKS_TABLE,
-        FilterExpression: '#symbol = :symbol AND #timestamp >= :from',
+        FilterExpression: '#symbol = :symbol AND #timestamp BETWEEN :from AND :to',
         ExpressionAttributeNames: {
           '#symbol': 'symbol',
           '#timestamp': 'timestamp',
@@ -60,6 +77,7 @@ app.get('/ticks/:symbol', async (req, res) => {
         ExpressionAttributeValues: {
           ':symbol': { S: symbol },
           ':from': { S: fromTimestamp },
+          ':to': { S: toTimestamp },
         },
         ExclusiveStartKey,
       }));
