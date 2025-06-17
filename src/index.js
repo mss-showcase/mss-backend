@@ -9,7 +9,9 @@ const tickers = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA'];
 const app = express();
 const dynamodb = new DynamoDBClient();
 
+  
 const TICKS_TABLE = process.env.TICKS_TABLE;
+const FUNDAMENTALS_TABLE = process.env.FUNDAMENTALS_TABLE;
 
 // GET /stocks - return static list
 app.get('/stocks', (req, res) => {
@@ -86,6 +88,46 @@ app.get('/ticks/:symbol', async (req, res) => {
     } while (ExclusiveStartKey);
 
     res.json({ symbol, ticks });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /fundamentals/:symbol - return latest fundamentals for a symbol
+app.get('/fundamentals/:symbol', async (req, res) => {
+  const { symbol } = req.params;
+
+  if (!tickers.includes(symbol)) {
+    return res.status(404).json({ error: 'Unknown symbol' });
+  }
+
+  try {
+    // Scan for all fundamentals for the symbol
+    const result = await dynamodb.send(new ScanCommand({
+      TableName: FUNDAMENTALS_TABLE,
+      FilterExpression: '#symbol = :symbol',
+      ExpressionAttributeNames: {
+        '#symbol': 'symbol',
+      },
+      ExpressionAttributeValues: {
+        ':symbol': { S: symbol },
+      },
+    }));
+
+    if (!result.Items || result.Items.length === 0) {
+      return res.status(404).json({ error: 'No fundamentals found for this symbol' });
+    }
+
+    // Find the item with the latest as_of date
+    // I will not use indexed column here, the data is kept until a month (see the TTL in the table definition and the ttl value at PutRequest)
+    const fundamentals = result.Items
+      .map(unmarshall)
+      .reduce((latest, item) => {
+        if (!latest) return item;
+        return new Date(item.as_of) > new Date(latest.as_of) ? item : latest;
+      }, null);
+
+    res.json({ symbol, fundamentals });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
