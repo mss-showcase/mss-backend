@@ -1,5 +1,5 @@
 import express from 'express';
-import { CognitoIdentityProviderClient, AdminGetUserCommand, AdminUpdateUserAttributesCommand, ListUsersCommand } from '@aws-sdk/client-cognito-identity-provider';
+import { CognitoIdentityProviderClient, AdminUpdateUserAttributesCommand, ListUsersCommand } from '@aws-sdk/client-cognito-identity-provider';
 
 const router = express.Router();
 
