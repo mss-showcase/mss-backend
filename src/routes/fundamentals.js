@@ -1,3 +1,4 @@
+import { requireAdmin } from './user.js';
 import express from 'express';
 import { ScanCommand } from '@aws-sdk/client-dynamodb';
 import { unmarshall } from '@aws-sdk/util-dynamodb';
@@ -45,5 +46,25 @@ router.get('/:symbol', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// GET /fundamentals/list?pageToken=... - admin only, paged fetch of all fundamentals
+// Admin: paged fetch of all fundamentals
+router.get('/all', requireAdmin, async (req, res) => {
+  const { pageToken } = req.query;
+  try {
+    const params = { TableName: FUNDAMENTALS_TABLE };
+    if (pageToken) params.ExclusiveStartKey = JSON.parse(Buffer.from(pageToken, 'base64').toString('utf-8'));
+    const result = await dynamodb.send(new ScanCommand(params));
+    const fundamentals = result.Items ? result.Items.map(unmarshall) : [];
+    let nextPageToken = null;
+    if (result.LastEvaluatedKey) {
+      nextPageToken = Buffer.from(JSON.stringify(result.LastEvaluatedKey)).toString('base64');
+    }
+    res.json({ fundamentals, nextPageToken });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 
 export default router;

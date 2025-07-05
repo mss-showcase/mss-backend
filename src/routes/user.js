@@ -17,7 +17,9 @@ function requireAdmin(req, res, next) {
 // GET /user/me - get current user profile (from JWT claims)
 router.get('/me', (req, res) => {
   if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
-  res.json({ user: req.user });
+  const groups = req.user['cognito:groups'] || [];
+  const isAdmin = groups.includes('admin');
+  res.json({ user: { ...req.user, isAdmin } });
 });
 
 // PUT /user/me - update user attributes (name, picture, etc.)
@@ -40,10 +42,17 @@ router.put('/me', async (req, res) => {
 });
 
 // GET /user/list - admin: list all users
+// GET /user/list?nextToken=... - admin: list users with pagination
 router.get('/list', requireAdmin, async (req, res) => {
+  const { nextToken } = req.query;
   try {
-    const result = await cognito.send(new ListUsersCommand({ UserPoolId: USER_POOL_ID }));
-    res.json({ users: result.Users });
+    const params = { UserPoolId: USER_POOL_ID };
+    if (nextToken) params.PaginationToken = nextToken;
+    const result = await cognito.send(new ListUsersCommand(params));
+    res.json({
+      users: result.Users,
+      nextToken: result.PaginationToken || null
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
