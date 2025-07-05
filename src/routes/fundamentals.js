@@ -49,7 +49,7 @@ router.get('/:symbol', async (req, res) => {
 
 // GET /fundamentals/list?pageToken=... - admin only, paged fetch of all fundamentals
 // Admin: paged fetch of all fundamentals
-router.get('/all', requireAdmin, async (req, res) => {
+router.get('/list', requireAdmin, async (req, res) => {
   const { pageToken } = req.query;
   try {
     const params = { TableName: FUNDAMENTALS_TABLE };
