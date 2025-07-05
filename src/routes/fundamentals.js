@@ -1,4 +1,4 @@
-import { requireAdmin } from './user.js';
+import { requireAdmin } from '../middleware/requireAdmin.js';
 import express from 'express';
 import { ScanCommand } from '@aws-sdk/client-dynamodb';
 import { unmarshall } from '@aws-sdk/util-dynamodb';
