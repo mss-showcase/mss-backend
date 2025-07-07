@@ -1,4 +1,6 @@
-
+// PUT /user/setadmin - set or unset admin group membership for a user (admin only)
+// Body: { username: string, isAdmin: boolean }
+import { AdminAddUserToGroupCommand, AdminRemoveUserFromGroupCommand } from '@aws-sdk/client-cognito-identity-provider';
 import express from 'express';
 import { CognitoIdentityProviderClient, AdminUpdateUserAttributesCommand, ListUsersCommand } from '@aws-sdk/client-cognito-identity-provider';
 import { requireAdmin } from '../middleware/requireAdmin.js';
@@ -50,6 +52,31 @@ router.get('/list', requireAdmin, async (req, res) => {
       users: result.Users,
       nextToken: result.PaginationToken || null
     });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.put('/setadmin', requireAdmin, async (req, res) => {
+  const { username, isAdmin } = req.body;
+  if (!username || typeof isAdmin !== 'boolean') {
+    return res.status(400).json({ error: 'username and isAdmin (boolean) required' });
+  }
+  try {
+    if (isAdmin) {
+      await cognito.send(new AdminAddUserToGroupCommand({
+        UserPoolId: USER_POOL_ID,
+        Username: username,
+        GroupName: 'admin'
+      }));
+    } else {
+      await cognito.send(new AdminRemoveUserFromGroupCommand({
+        UserPoolId: USER_POOL_ID,
+        Username: username,
+        GroupName: 'admin'
+      }));
+    }
+    res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
