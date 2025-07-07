@@ -1,8 +1,8 @@
-// PUT /user/setadmin - set or unset admin group membership for a user (admin only)
-// Body: { username: string, isAdmin: boolean }
-import { AdminAddUserToGroupCommand, AdminRemoveUserFromGroupCommand } from '@aws-sdk/client-cognito-identity-provider';
 import express from 'express';
-import { CognitoIdentityProviderClient, AdminUpdateUserAttributesCommand, ListUsersCommand } from '@aws-sdk/client-cognito-identity-provider';
+import { CognitoIdentityProviderClient, AdminUpdateUserAttributesCommand,
+   ListUsersCommand, AdminDisableUserCommand,
+    AdminEnableUserCommand, AdminAddUserToGroupCommand,
+     AdminRemoveUserFromGroupCommand } from '@aws-sdk/client-cognito-identity-provider';
 import { requireAdmin } from '../middleware/requireAdmin.js';
 
 const router = express.Router();
@@ -74,6 +74,30 @@ router.put('/setadmin', requireAdmin, async (req, res) => {
         UserPoolId: USER_POOL_ID,
         Username: username,
         GroupName: 'admin'
+      }));
+    }
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+router.put('/setenabled', requireAdmin, async (req, res) => {
+  const { username, enable } = req.body;
+  if (!username || typeof enable !== 'boolean') {
+    return res.status(400).json({ error: 'username and enable (boolean) required' });
+  }
+  try {
+    if (enable) {
+      await cognito.send(new AdminEnableUserCommand({
+        UserPoolId: USER_POOL_ID,
+        Username: username
+      }));
+    } else {
+      await cognito.send(new AdminDisableUserCommand({
+        UserPoolId: USER_POOL_ID,
+        Username: username
       }));
     }
     res.json({ success: true });

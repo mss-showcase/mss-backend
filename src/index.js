@@ -13,6 +13,12 @@ const app = express();
 // Parse JSON bodies
 app.use(express.json());
 
+// Request logger
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
+  next();
+});
+
 // Register endpoints
 app.use('/stocks', stocksHandler);
 app.use('/ticks', ticksHandler);
@@ -29,5 +35,11 @@ app.use('/analysis', analysisExplanationHandler);
 
 // Technical analysis endpoints
 app.use('/analysis/ta', taHandler);
+
+// Error logger (should be after all routes)
+app.use((err, req, res, next) => {
+  console.error(`[${new Date().toISOString()}] ERROR on ${req.method} ${req.originalUrl}:`, err);
+  res.status(500).json({ error: 'Internal server error' });
+});
 
 export const handler = serverlessExpress({ app });
