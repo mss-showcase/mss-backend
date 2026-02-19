@@ -4,10 +4,10 @@
   "main": "index.js",
   "type": "module",
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.528.0",
+    "@aws-sdk/client-s3": "^3.994.0",
     "@vendia/serverless-express": "^4.12.6",
-    "express": "^5.1.0",
-    "jsonwebtoken": "^9.0.2",
-    "jwks-rsa": "^3.2.0"
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "jwks-rsa": "^3.2.2"
   }
 }
